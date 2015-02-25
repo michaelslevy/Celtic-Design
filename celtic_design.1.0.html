@@ -1,0 +1,360 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+    
+    <head>
+        <title>HTML 5 :: Celtic Grid</title>
+        <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js'
+        type='text/javascript'></script>
+        <link href='http://fonts.googleapis.com/css?family=Rosarivo'
+        rel='stylesheet' type='text/css'>
+        <link href='jquery-ui-1.8.20.custom/css/ui-lightness/jquery-ui-1.8.20.custom.css'
+        rel='stylesheet' type='text/css'>
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.18/jquery-ui.min.js"></script>
+        <style type='text/css'>
+            body {
+                background:#999;
+                font-family:'Rosarivo', arial;
+            }
+            #blossom {
+                border:solid 4px #666;
+                background:white;
+                float:left;
+            }
+            #wrapper {
+                width:900px;
+                height:600px;
+                margin:50px auto;
+            }
+            #right {
+                width:210px;
+                height:567px;
+                float:right;
+                background:#ccc;
+                padding:20px;
+            }
+            input, label {
+                float:left;
+                width:200px;
+                height:20px;
+            }
+            input {
+                border:solid 1px #999;
+                padding:3px 5px;
+                width:190px;
+            }
+            label {
+                padding:10px 0 3px 0;
+                font-size:15px;
+                height:auto;
+            }
+            #submit {
+                position:relative;
+                top:15px;
+                background:#666;
+                color:white;
+                border:0;
+                font-size:15px;
+                padding:5px 0;
+                height:auto;
+                width:200px;
+            }
+            #submit:hover, #variation:hover {
+                background:#c50;
+            }
+            #data {
+                clear:both;
+            }
+            .slider {
+                clear:both;
+                width:200px;
+            }
+            #variation {
+                display:block;
+                margin-top:20px;
+                margin-left:-10px;
+                color:white;
+                background:#666;
+                padding:5px;
+                text-align:center;
+                text-decoration:none;
+            }
+        </style>
+    </head>
+    
+    <body>
+        <div id='wrapper'>
+            <canvas id="blossom" width="600" height="600"></canvas>
+            <div id='right'>
+                <form id='params'>
+                    <label for='sides'>Horizontal Steps</label>
+                    <div>
+                        <div class='slider'></div>
+                        <input type='hidden' id='grid_size_x' value='4' />
+                    </div>
+                    <label for='sides'>Vertical Steps</label>
+                    <div>
+                        <div class='slider'></div>
+                        <input type='hidden' id='grid_size_y' value='4' />
+                    </div>
+                    <label for='sides'>Zoom</label>
+                    <div>
+                        <div class='slider'></div>
+                        <input type='hidden' id='cell_size' value='10' />
+                    </div>
+                    <a href='' id='variation'>Variation</a>
+                </form>
+            </div>
+            <div id='data'></div>
+        </div>
+        <div id="slider"></div>
+        <!-- End demo -->
+        <script type="application/javascript">
+            $(function () {
+
+                function clearCanvas() {
+                    var canvas = document.getElementById("blossom"),
+                        context = canvas.getContext("2d");
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+                }
+
+                //builds incriminator pattern
+                function build_pattern() {
+
+                    var grid_size_x = parseInt($('#grid_size_x').val());
+                    var grid_size_y = parseInt($('#grid_size_y').val());
+                    var curve_priority = parseInt($('#curve_priority').val());
+                    var y_random_range, x_random_range;
+
+                    //stores pattern incrementor
+                    var points = new Array(new Array(0, 0));
+
+                    //tracks span of x's and y's
+                    var x_total = 0;
+                    var y_total = 0;
+
+                    //increases range for smaller value to increase probability of a 0.
+                    //This will make it less likely to make a long straight line.
+                    if (grid_size_x > grid_size_y) {
+                        x_random_range = 2;
+                        y_random_range = (grid_size_x / grid_size_y) + 1;
+                    } else if (grid_size_y > grid_size_x) {
+                        y_random_range = 2;
+                        x_random_range = (grid_size_y / grid_size_x) + 2;
+                    } else {
+                        y_random_range = 2;
+                        x_random_range = 2;
+                    }
+
+                    //return false;
+                    //console.log(' ');
+
+                    //cycle through increment point to build patten.
+                    while (1 == 1) {
+
+                        if (x_total >= grid_size_x && y_total >= grid_size_y) {
+                            break;
+                        }
+
+                        if (x_total < grid_size_x) {
+                            x = Math.floor(Math.random() * x_random_range);
+                            if (x > 0) {
+                                x = 0;
+                            } else {
+                                x = 1;
+                            }
+                        } else {
+                            x = 0;
+                        }
+
+                        if (y_total < grid_size_y) {
+                            y = Math.floor(Math.random() * y_random_range);
+                            if (y > 0) {
+                                y = 0;
+                            } else {
+                                y = 1;
+                            }
+                        } else {
+                            y = 0;
+                        }
+
+
+                        //calculate distance moved on the grid
+                        x_total = x_total + x;
+                        y_total = y_total + y;
+
+                        var t = new Array(x, y)
+                        points.push(t);
+
+                    }
+
+                    return points;
+
+
+                }
+
+                function draw() {
+
+                    clearCanvas();
+
+                    pattern = build_pattern();
+
+                    var canvas = document.getElementById("blossom"),
+                        ctx;
+
+                    var cell_size = parseInt(($('#cell_size').val() / 1000) * $('#blossom').width());
+                    var grid_size_x = $('#grid_size_x').val() * cell_size;
+                    var grid_size_y = $('#grid_size_y').val() * cell_size;
+
+                    var x_offset = grid_size_x * 2 * -1;
+
+                    //repeat rows
+                    while (x_offset < $('#blossom').width()) {
+
+                        draw_segment(canvas, pattern, x_offset, y_offset, cell_size);
+                        x_offset = x_offset + (grid_size_x * 2);
+
+                        //make columns
+                        var y_offset = grid_size_y;
+                        while (y_offset < $('#blossom').height()) {
+                            draw_segment(canvas, pattern, x_offset, y_offset, cell_size);
+                            y_offset = y_offset + (grid_size_y * 2);
+                        }
+
+                    } //end drawing while loop
+                }
+
+                function draw_segment(canvas, pattern, x_offset, y_offset, cell_size) {
+                    if (canvas.getContext) {
+                        ctx = canvas.getContext("2d");
+                        ctx.globalAlpha = 1;
+                        ctx.beginPath();
+
+                        if (isNaN(y_offset)) {
+                            y_offset = 0;
+                        }
+                        var x = Math.round(x_offset);
+                        var y = Math.round(y_offset);
+                        for (i = 0; i < pattern.length; i++) {
+
+                            var x_increment = pattern[i][0] * cell_size;
+                            var y_increment = pattern[i][1] * cell_size;
+                            var curve = pattern[i][2];
+
+                            coord = draw_new_line(x_increment, y_increment, x, y);
+                            x = coord[0];
+                            y = coord[1];
+
+                        }
+
+                        pattern2 = array_flip(pattern);
+
+                        for (i = 0; i < pattern2.length; i++) {
+
+                            x_increment = pattern2[i][0] * cell_size;
+                            y_increment = pattern2[i][1] * cell_size * -1;
+
+                            coord = draw_new_line(x_increment, y_increment, x, y);
+                            x = coord[0];
+                            y = coord[1];
+
+                        }
+
+                        for (i = 0; i < pattern.length; i++) {
+
+                            x_increment = pattern[i][0] * cell_size * -1;
+                            y_increment = pattern[i][1] * cell_size * -1;
+
+                            coord = draw_new_line(x_increment, y_increment, x, y);
+                            x = coord[0];
+                            y = coord[1];
+
+                        }
+
+                        for (i = 0; i < pattern2.length; i++) {
+
+                            x_increment = pattern2[i][0] * cell_size * -1;
+                            y_increment = pattern2[i][1] * cell_size;
+
+                            coord = draw_new_line(x_increment, y_increment, x, y);
+                            x = coord[0];
+                            y = coord[1];
+
+                        }
+
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                } // end draw segment
+                function draw_new_line(x_increment, y_increment, x, y) {
+
+                    x = x + x_increment;
+                    y = y + y_increment;
+                    ctx.lineTo(x, y);
+
+                    return new Array(x, y);
+                }
+
+                function array_flip(trans) {
+                    tmp_ar = new Array();
+
+                    for (i = 0; i < trans.length; i++) {
+                        tmp_ar.unshift(trans[i]);
+                    }
+
+                    return tmp_ar;
+                }
+
+
+                ///page movement
+                var move = 0;
+                var mouse_start_x;
+                var mouse_start_y;
+                var x_offset;
+                var y_offset;
+
+                $("#blossom").mousedown(function (e) {
+                    move = 1;
+                    start_x = e.pageX;
+                    start_y = e.pageY;
+
+                }).mouseup(function () {
+                    move = 0;
+                });
+
+                $("#blossom").mousemove(function (e) {
+                    if (move == 1) {
+                        x_offset = e.pageX - start_x;
+                        y_offset = e.pageY - start_y;
+                        //console.log(x_offset,y_offset);
+                    }
+                });
+
+                draw();
+                $('#variation').click(function () {
+                    draw();
+                    return false;
+                });
+
+                $(".slider").slider({
+
+                    animate: true,
+                    range: "min",
+                    value: 1,
+                    min: 3,
+                    max: 25,
+                    step: 1,
+
+                    //this gets a live reading of the value and prints it on the page
+                    slide: function (event, ui) {
+                        $(this).parent().find('input').attr('value', ui.value);
+                        draw();
+                    }
+
+                });
+
+
+            });
+        </script>
+    </body>
+
+</html>
